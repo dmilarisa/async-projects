@@ -2,6 +2,7 @@ import asyncio
 import logging
 
 import aiohttp
+from datetime import datetime, timedelta
 import websockets
 import names
 from websockets import WebSocketServerProtocol
@@ -24,9 +25,16 @@ async def request(url: str) -> dict | str:
 
 
 async def get_exchange():
-    response = await request('https://api.privatbank.ua/p24api/pubinfo?exchange&coursid=5')
-    # add task condition
-    return response
+    day = datetime.now().strftime("%d.%m.%Y")
+    day_data = {day: {}}
+    response = await request(f'https://api.privatbank.ua/p24api/exchange_rates?json&date={day}')
+    currencies = ('USD', 'EUR')
+    for currency in currencies:
+        for el in response['exchangeRate']:
+            if el['currency'] == currency:
+                rates = {"sale": el["saleRateNB"], "purchase": el["purchaseRateNB"]}
+                day_data[day].update({currency: rates})
+    return day_data
 
 
 class Server:
